@@ -7,11 +7,12 @@ export default function Install() {
         e.preventDefault()
         if (!shop) return
 
-        // Normalize shop domain
         let domain = shop.trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
         if (!domain.includes('.')) domain += '.myshopify.com'
 
-        window.location.href = `/api/auth?shop=${domain}`
+        // Ensure we point to the base Render URL, stripping /api if it exists
+        const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/api\/?$/, '')
+        window.location.href = `${apiUrl}/auth/shopify?shop=${domain}`
     }
 
     return (
