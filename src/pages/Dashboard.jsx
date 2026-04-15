@@ -1,14 +1,35 @@
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useOrders } from '../hooks/useOrders'
 import OrderTable from '../components/OrderTable'
 import CartActivity from '../components/CartActivity'
 import StatsCard from '../components/StatsCard'
 import Loader from '../components/Loader'
+import Pagination from '../components/Pagination'
 import { formatCurrency } from '../utils/helpers'
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50]
 
 export default function Dashboard() {
     const shop = useSelector((state) => state.auth.shop)
     const { orders, stats, loading, error, refresh } = useOrders()
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(5)
+
+    const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
+    const safePage = Math.min(currentPage, totalPages)
+    const pagedOrders = orders.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    const handlePageSizeChange = (e) => {
+        setPageSize(Number(e.target.value))
+        setCurrentPage(1)
+    }
 
     if (!shop) {
         return (
@@ -65,10 +86,44 @@ export default function Dashboard() {
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                {/* Orders Table */}
+
+                {/* Orders Table + Pagination */}
                 <div className="xl:col-span-3">
-                    <h2 className="text-base font-semibold text-gray-700 mb-3">Recent Orders</h2>
-                    <OrderTable orders={orders} />
+                    {/* Table header row */}
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-base font-semibold text-gray-700">
+                            Recent Orders
+                            {orders.length > 0 && (
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                    ({orders.length} total)
+                                </span>
+                            )}
+                        </h2>
+
+                        {/* Rows per page */}
+                        {orders.length > 0 && (
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>Rows per page:</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={handlePageSizeChange}
+                                    className="border border-gray-200 rounded-md px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-shopify-green"
+                                >
+                                    {PAGE_SIZE_OPTIONS.map((size) => (
+                                        <option key={size} value={size}>{size}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
+                    <OrderTable orders={pagedOrders} />
+
+                    <Pagination
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
                 </div>
 
                 {/* Cart Activity */}
