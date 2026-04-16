@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchLogs } from '../store/slices/logSlice'
 import LogCard from '../components/LogCard'
 import Loader from '../components/Loader'
+import Pagination from '../components/Pagination'
 
 export default function Logs() {
     const dispatch = useDispatch()
@@ -11,12 +12,17 @@ export default function Logs() {
     const logs = logsState?.list || []
     const loading = logsState?.loading
     const error = logsState?.error
+    const { currentPage, totalPages } = logsState?.pagination || { currentPage: 1, totalPages: 1 }
 
     useEffect(() => {
-        if (shop) dispatch(fetchLogs(shop))
-    }, [shop, dispatch])
+        if (shop) dispatch(fetchLogs({ shop, page: currentPage, limit: 10 }))
+    }, [shop, currentPage, dispatch])
 
-    const refresh = () => { if (shop) dispatch(fetchLogs(shop)) }
+    const refresh = () => { if (shop) dispatch(fetchLogs({ shop, page: 1, limit: 10 })) }
+
+    const handlePageChange = (newPage) => {
+        dispatch({ type: 'logs/setCurrentPage', payload: newPage })
+    }
 
     if (loading && logs.length === 0) return <Loader text="Loading logs..." />
 
@@ -46,7 +52,6 @@ export default function Logs() {
 
             {logs.length === 0 && !loading ? (
                 <div className="text-center py-16 text-gray-400">
-                    <p className="text-4xl mb-3">📋</p>
                     <p className="text-sm">No events yet. Install the plugin on a store to start receiving webhooks.</p>
                 </div>
             ) : (
@@ -54,6 +59,14 @@ export default function Logs() {
                     {logs.map((log) => (
                         <LogCard key={log.id} log={log} />
                     ))}
+                    
+                    {logs.length > 0 && totalPages > 1 && (
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
+                    )}
                 </div>
             )}
 
