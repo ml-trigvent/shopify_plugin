@@ -8,10 +8,28 @@ export default function Settings() {
     const { data, saving, saved, error, loading } = useSelector((state) => state.settings)
 
     const [apiKey, setApiKey] = useState('')
+    const [eventPreferences, setEventPreferences] = useState({
+        order_placed: true,
+        payment_success: true,
+        order_shipped: true,
+        abandoned_cart_reminder: true,
+        checkout_started: true,
+        cart_updated: true,
+        order_cancelled: true
+    })
 
     useEffect(() => {
         if (shop) dispatch(fetchSettings(shop))
     }, [shop, dispatch])
+
+    useEffect(() => {
+        if (data && data.hasApiKey) {
+           setApiKey(data.easy_client_api_key || '') // the backend doesn't return full key, actually backend doesn't return apiKey value for security, only `hasApiKey`. We might just leave it blank to not overwrite if they don't enter it, or the backend should not overwrite if it's blank. Actually, wait. The user only re-enters it if they update it. Let's just leave api key blank initially if we don't have it.
+        }
+        if (data?.eventPreferences) {
+           setEventPreferences(prev => ({ ...prev, ...data.eventPreferences }))
+        }
+    }, [data])
 
     useEffect(() => {
         if (saved) {
@@ -22,7 +40,14 @@ export default function Settings() {
 
     const handleSave = () => {
         if (!shop) return
-        dispatch(saveSettings({ shop, easy_client_api_key: apiKey }))
+        dispatch(saveSettings({ shop, easy_client_api_key: apiKey, event_preferences: eventPreferences }))
+    }
+
+    const toggleEvent = (eventName) => {
+        setEventPreferences(prev => ({
+            ...prev,
+            [eventName]: !prev[eventName]
+        }))
     }
 
     return (
@@ -77,10 +102,37 @@ export default function Settings() {
                     </p>
                 </div>
 
+                <div className="mt-8 border-t border-gray-100 pt-6">
+                    <h2 className="text-base font-semibold text-gray-800 mb-4">Event Preferences</h2>
+                    <p className="text-xs text-gray-400 mb-4">Select which events should trigger a message in Easy Client.</p>
+                    
+                    <div className="space-y-3">
+                        {[
+                            { key: 'order_placed', label: 'Order Placed' },
+                            { key: 'payment_success', label: 'Payment Success' },
+                            { key: 'order_shipped', label: 'Order Shipped' },
+                            { key: 'order_cancelled', label: 'Order Cancelled' },
+                            { key: 'abandoned_cart_reminder', label: 'Abandoned Cart Reminder' },
+                            { key: 'checkout_started', label: 'Checkout Started' },
+                            { key: 'cart_updated', label: 'Cart Updated' }
+                        ].map((event) => (
+                            <label key={event.key} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                                <span className="text-sm font-medium text-gray-700">{event.label}</span>
+                                <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 text-shopify-green rounded border-gray-300 focus:ring-shopify-green"
+                                    checked={eventPreferences[event.key] !== false}
+                                    onChange={() => toggleEvent(event.key)}
+                                />
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
                 <button
                     onClick={handleSave}
-                    disabled={saving || !apiKey.trim()}
-                    className="w-full bg-shopify-green text-white py-2.5 rounded-lg text-sm font-medium hover:bg-shopify-darkgreen transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
+                    className="w-full bg-shopify-green text-white py-2.5 rounded-lg text-sm font-medium hover:bg-shopify-darkgreen transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>

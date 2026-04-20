@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchLogs } from '../store/slices/logSlice'
 import LogCard from '../components/LogCard'
@@ -14,11 +14,24 @@ export default function Logs() {
     const error = logsState?.error
     const { currentPage, totalPages } = logsState?.pagination || { currentPage: 1, totalPages: 1 }
 
-    useEffect(() => {
-        if (shop) dispatch(fetchLogs({ shop, page: currentPage, limit: 10 }))
-    }, [shop, currentPage, dispatch])
+    const [searchTerm, setSearchTerm] = useState('')
 
-    const refresh = () => { if (shop) dispatch(fetchLogs({ shop, page: 1, limit: 10 })) }
+    useEffect(() => {
+        if (shop) dispatch(fetchLogs({ shop, page: currentPage, limit: 10, search: searchTerm }))
+    }, [shop, currentPage, dispatch]) // omitting searchTerm to only search on enter/button, but wait, usually we want to search on change or button click. Let's do it on button click or refresh.
+    
+    // Actually, let's fetch when searchTerm changes but debounced, or just when hitting refresh button.
+    // Let's stick to fetch explicit.
+    
+    const refresh = () => { if (shop) dispatch(fetchLogs({ shop, page: 1, limit: 10, search: searchTerm })) }
+
+    const handleSearch = (e) => {
+        e.preventDefault()
+        if (shop) {
+             dispatch({ type: 'logs/setCurrentPage', payload: 1 })
+             dispatch(fetchLogs({ shop, page: 1, limit: 10, search: searchTerm }))
+        }
+    }
 
     const handlePageChange = (newPage) => {
         dispatch({ type: 'logs/setCurrentPage', payload: newPage })
@@ -36,12 +49,28 @@ export default function Logs() {
                         All webhook events received from Shopify
                     </p>
                 </div>
-                <button
-                    onClick={refresh}
-                    className="px-4 py-2 text-sm font-medium text-shopify-green border border-shopify-green rounded-lg hover:bg-shopify-lightgreen transition-colors"
-                >
-                    Refresh
-                </button>
+                <form onSubmit={handleSearch} className="flex items-center gap-2">
+                    <input 
+                        type="text" 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search logs..." 
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-shopify-green"
+                    />
+                    <button
+                        type="submit"
+                        className="px-4 py-2 text-sm font-medium text-shopify-green border border-shopify-green rounded-lg hover:bg-shopify-lightgreen transition-colors"
+                    >
+                        Search
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { setSearchTerm(''); setTimeout(refresh, 0); }}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        Clear
+                    </button>
+                </form>
             </div>
 
             {error && (

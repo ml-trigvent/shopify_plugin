@@ -11,8 +11,8 @@ export const fetchSettings = createAsyncThunk(
 
 export const saveSettings = createAsyncThunk(
     'settings/saveSettings',
-    async ({ shop, easy_client_api_key }) => {
-        const response = await api.post('/settings', { shop, easy_client_api_key })
+    async ({ shop, easy_client_api_key, event_preferences }) => {
+        const response = await api.post('/settings', { shop, easy_client_api_key, event_preferences })
         return response.data
     }
 )
